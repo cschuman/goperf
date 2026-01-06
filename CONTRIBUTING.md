@@ -71,7 +71,7 @@ goperf/
 │   ├── allocation.go # Memory allocation patterns
 │   ├── database.go   # N+1 query detection
 │   └── ...
-├── fixer/            # Auto-fix suggestions
+├── fixer/            # Fix suggestions
 ├── reporter/         # Output formatters (console, JSON)
 └── examples/         # Example problematic code
 ```

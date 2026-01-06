@@ -13,7 +13,7 @@ import (
 	"github.com/unsaid-dev/goperf/rules"
 )
 
-// Fix represents an auto-fixable change
+// Fix represents a suggested change
 type Fix struct {
 	File     string
 	Line     int
@@ -23,7 +23,7 @@ type Fix struct {
 	Applied  bool
 }
 
-// Fixer handles automatic code fixes
+// Fixer handles fix suggestions
 type Fixer struct {
 	DryRun  bool
 	Verbose bool
@@ -80,7 +80,7 @@ func validatePathForWrite(filename string) error {
 	return nil
 }
 
-// FixIssues attempts to fix the given issues
+// FixIssues generates fix suggestions for the given issues
 func (f *Fixer) FixIssues(issues []rules.Issue) []Fix {
 	// Preallocate: assume ~1 fix per issue
 	fixes := make([]Fix, 0, len(issues))
@@ -130,10 +130,10 @@ func (f *Fixer) fixFile(filename string, issues []rules.Issue) []Fix {
 		}
 	}
 
-	// NOTE: Auto-fix currently only generates suggestions.
-	// Actual AST modification and file writing is not implemented
+	// NOTE: Suggestions are output only.
+	// Automatic AST modification and file writing is not implemented
 	// because safe AST modification is complex and error-prone.
-	// The fixes are displayed as suggestions for manual application.
+	// Suggestions are displayed for manual application.
 
 	return fixes
 }
@@ -154,7 +154,7 @@ func (f *Fixer) attemptFix(issue rules.Issue, file *ast.File, fset *token.FileSe
 			File:     issue.File,
 			Line:     issue.Line,
 			Original: getLine(lines, issue.Line),
-			Fixed:    "", // No auto-fix available
+			Fixed:    "", // No suggestion available
 			Rule:     issue.Rule,
 			Applied:  false,
 		}
@@ -295,18 +295,18 @@ func getLine(lines []string, lineNum int) string {
 	return ""
 }
 
-// PrintFixes displays the fixes in a readable format
+// PrintFixes displays the suggestions in a readable format
 func PrintFixes(fixes []Fix, dryRun bool) {
 	if len(fixes) == 0 {
-		fmt.Println("No auto-fixes available for the detected issues.")
+		fmt.Println("No fix suggestions available for the detected issues.")
 		return
 	}
 
 	if dryRun {
-		fmt.Println("=== DRY RUN: Suggested fixes (no files modified) ===")
+		fmt.Println("=== DRY RUN: Fix suggestions (no files modified) ===")
 		fmt.Println()
 	} else {
-		fmt.Println("=== Suggested fixes ===")
+		fmt.Println("=== Fix suggestions ===")
 		fmt.Println()
 	}
 
@@ -317,9 +317,9 @@ func PrintFixes(fixes []Fix, dryRun bool) {
 			fmt.Printf("Original: %s\n", strings.TrimSpace(fix.Original))
 		}
 		if fix.Fixed != "" {
-			fmt.Printf("Fix: %s\n", fix.Fixed)
+			fmt.Printf("Suggestion: %s\n", fix.Fixed)
 		} else {
-			fmt.Println("Fix: Manual intervention required - see issue suggestion")
+			fmt.Println("Suggestion: Manual intervention required - see issue detail")
 		}
 		fmt.Println()
 	}

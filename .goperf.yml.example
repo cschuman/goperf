@@ -1,0 +1,26 @@
+# goperf configuration file
+# Place this file as .goperf.yml in your project root.
+
+# rules: list of rule categories to run (use "all" for everything)
+rules:
+  - algorithm
+  - database
+  - concurrency
+
+# ignore_paths: path substrings to skip during file collection
+ignore_paths:
+  - vendor
+  - testdata
+  - generated
+
+# fail_on: exit 1 if issues at this level or higher (low, medium, high, critical)
+fail_on: high
+
+# format: output format (console, json, diff)
+format: console
+
+# context: lines of context to show around issues
+context: 3
+
+# verbose: show verbose output
+verbose: false

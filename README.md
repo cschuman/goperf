@@ -42,6 +42,9 @@ goperf --rules=algorithm,database ./...
 
 # CI mode - fail on high severity issues
 goperf --fail-on=high --format=json ./...
+
+# Show fix suggestions (does not modify files)
+goperf --suggest ./...
 ```
 
 ## What It Detects
@@ -125,16 +128,38 @@ goperf --fail-on=critical ./...
 
 ## Configuration
 
+### Config File
+
+`goperf` will load `.goperf.yml` from the current directory. CLI flags override config values.
+
+Example:
+
+```yaml
+rules:
+  - algorithm
+  - database
+ignore_paths:
+  - vendor
+  - testdata
+fail_on: high
+format: console
+context: 3
+verbose: false
+```
+
+See `.goperf.yml.example` for a fully documented template.
+
 ### Command Line Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--rules` | `all` | Rules to run: `algorithm,allocation,database,concurrency,io,cache` |
-| `--format` | `console` | Output format: `console`, `json` |
+| `--rules` | `all` | Rules to run: `algorithm,allocation,database,concurrency,io,cache,context,memory,benchmark` |
+| `--format` | `console` | Output format: `console`, `json`, `diff` |
 | `--fail-on` | - | Exit code 1 if issues at this level: `low,medium,high,critical` |
 | `--context` | `3` | Lines of code context to show |
 | `--ignore` | - | Comma-separated paths to ignore |
 | `--verbose` | `false` | Show verbose output |
+| `--suggest` | `false` | Show fix suggestions (does not modify files) |
 
 ## Severity Levels
 
@@ -197,7 +222,7 @@ $ goperf ./...
 ╰───────────────────────────────────────────────────────────────────╯
 ```
 
-**We fixed all 34 actionable issues:**
+**We manually addressed 34 actionable issues based on suggestions:**
 
 | Issue Type | Count | Fix Applied |
 |------------|-------|-------------|
@@ -205,7 +230,7 @@ $ goperf ./...
 | String concat in loops | 2 | `strings.Builder` |
 | Map without size hint | 1 | `make(map[K]V, size)` |
 
-**After fixes:**
+**After applying those changes:**
 ```
 $ goperf ./...
 ╭───────────────────────────────────────────────────────────────────╮
@@ -217,7 +242,7 @@ The remaining 113 issues are:
 - **3 medium**: Nested loops for AST traversal (intentional, not O(n²) on data)
 - **110 low**: "Consider adding benchmarks" suggestions
 
-This demonstrates that `goperf` finds real issues - including in itself - and that fixing them is straightforward.
+This demonstrates that `goperf` finds real issues - including in itself - and that acting on suggestions is straightforward.
 
 ## Contributing
 
@@ -229,7 +254,7 @@ Areas we'd love help with:
 - [ ] False positive reduction
 - [ ] IDE integrations (VS Code, GoLand)
 - [ ] Benchmark integration
-- [ ] Auto-fix suggestions
+- [ ] Fix suggestions
 
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
@@ -246,3 +271,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 Inspired by the philosophy that **preventing performance problems is better than fixing them**.
 
 Built with Go's excellent `go/ast` package for static analysis.
+
+Note: automatic code fixing is not yet implemented. `goperf` only produces suggestions for manual changes.

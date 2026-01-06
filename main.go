@@ -8,21 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/unsaid-dev/goperf/config"
 	"github.com/unsaid-dev/goperf/fixer"
 	"github.com/unsaid-dev/goperf/reporter"
 	"github.com/unsaid-dev/goperf/rules"
-)
-
-var (
-	rulesFlag   = flag.String("rules", "all", "Comma-separated rules to run: algorithm,allocation,database,concurrency,io,cache,context,memory,benchmark,all")
-	formatFlag  = flag.String("format", "console", "Output format: console, json, diff")
-	failOnFlag  = flag.String("fail-on", "", "Exit with code 1 if issues at this level or higher: low, medium, high, critical")
-	contextFlag = flag.Int("context", 3, "Lines of context to show around issues")
-	ignoreFlag  = flag.String("ignore", "", "Comma-separated paths to ignore")
-	verboseFlag = flag.Bool("verbose", false, "Show verbose output")
-	versionFlag = flag.Bool("version", false, "Show version")
-	fixFlag     = flag.Bool("fix", false, "Automatically fix issues where possible")
-	dryRunFlag  = flag.Bool("dry-run", false, "Show fixes without applying them (use with --fix)")
 )
 
 // Resource limits to prevent DoS
@@ -35,6 +24,46 @@ const (
 var version = "0.1.0"
 
 func main() {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	rulesDefault := "all"
+	if len(cfg.Rules) > 0 {
+		rulesDefault = strings.Join(cfg.Rules, ",")
+	}
+
+	ignoreDefault := ""
+	if len(cfg.IgnorePaths) > 0 {
+		ignoreDefault = strings.Join(cfg.IgnorePaths, ",")
+	}
+
+	formatDefault := "console"
+	if cfg.Format != "" {
+		formatDefault = cfg.Format
+	}
+
+	failOnDefault := cfg.FailOn
+
+	contextDefault := 3
+	if cfg.Context != 0 {
+		contextDefault = cfg.Context
+	}
+
+	verboseDefault := cfg.Verbose
+
+	rulesFlag := flag.String("rules", rulesDefault, "Comma-separated rules to run: algorithm,allocation,database,concurrency,io,cache,context,memory,benchmark,all")
+	formatFlag := flag.String("format", formatDefault, "Output format: console, json, diff")
+	failOnFlag := flag.String("fail-on", failOnDefault, "Exit with code 1 if issues at this level or higher: low, medium, high, critical")
+	contextFlag := flag.Int("context", contextDefault, "Lines of context to show around issues")
+	ignoreFlag := flag.String("ignore", ignoreDefault, "Comma-separated paths to ignore")
+	verboseFlag := flag.Bool("verbose", verboseDefault, "Show verbose output")
+	versionFlag := flag.Bool("version", false, "Show version")
+	suggestFlag := flag.Bool("suggest", false, "Show fix suggestions (does not modify files)")
+	dryRunFlag := flag.Bool("dry-run", false, "Show fix suggestions with a dry-run banner")
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `goperf - Performance Pattern Detector for Go
 
@@ -48,8 +77,8 @@ Examples:
   goperf --rules=algorithm ./internal/  # Only algorithm rules
   goperf --format=json ./...            # JSON output for CI
   goperf --fail-on=high ./...           # Exit 1 if high+ issues
-  goperf --fix --dry-run ./...          # Preview auto-fixes
-  goperf --fix ./...                    # Apply auto-fixes
+  goperf --suggest ./...                # Show fix suggestions
+  goperf --suggest --format=diff ./...  # Show suggestions as a diff
 
 Flags:
 `)
@@ -72,8 +101,8 @@ Severity Levels:
   medium   - Moderate impact, should fix
   low      - Minor optimization opportunity
 
-Auto-Fix Support:
-  The following rules support auto-fix:
+Fix Suggestion Support:
+  The following rules support suggestions (no files are modified):
   - string-concat-loop    → strings.Builder suggestion
   - unpreallocated-slice  → make() with capacity
   - missing-body-close    → defer Body.Close()
@@ -125,10 +154,10 @@ Auto-Fix Support:
 	}
 
 	// Run analysis
-	issues := analyzer.Analyze(files)
+	issues, _ := analyzer.Analyze(files)
 
-	// Handle fix mode
-	if *fixFlag {
+	// Handle suggestion mode
+	if *suggestFlag {
 		f := fixer.NewFixer(*dryRunFlag, *verboseFlag)
 		fixes := f.FixIssues(issues)
 
@@ -147,7 +176,7 @@ Auto-Fix Support:
 					fixable++
 				}
 			}
-			fmt.Printf("Auto-fixable: %d\n", fixable)
+			fmt.Printf("Suggestions with replacements: %d\n", fixable)
 		}
 		return
 	}
@@ -158,7 +187,7 @@ Auto-Fix Support:
 	case "json":
 		rep = &reporter.JSONReporter{}
 	case "diff":
-		// Generate diff output even without --fix
+		// Generate diff output even without --suggest
 		f := fixer.NewFixer(true, *verboseFlag)
 		fixes := f.FixIssues(issues)
 		fmt.Println(fixer.GenerateDiff(fixes))
