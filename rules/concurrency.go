@@ -19,7 +19,7 @@ func (r *UnbufferedChannelRule) Name() string     { return "unbuffered-channel" 
 func (r *UnbufferedChannelRule) Category() string { return "concurrency" }
 
 func (r *UnbufferedChannelRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
@@ -273,7 +273,7 @@ func (r *MutexInLoopRule) Name() string     { return "mutex-in-loop" }
 func (r *MutexInLoopRule) Category() string { return "concurrency" }
 
 func (r *MutexInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt
@@ -343,7 +343,7 @@ func (r *GoroutineLeakRule) Name() string     { return "goroutine-leak" }
 func (r *GoroutineLeakRule) Category() string { return "concurrency" }
 
 func (r *GoroutineLeakRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		goStmt, ok := n.(*ast.GoStmt)

@@ -19,7 +19,7 @@ func (r *UnpreallocatedSliceRule) Name() string     { return "unpreallocated-sli
 func (r *UnpreallocatedSliceRule) Category() string { return "allocation" }
 
 func (r *UnpreallocatedSliceRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 8)
 
 	// For each function, track preallocated slices
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -186,7 +186,7 @@ func (r *StringConcatInLoopRule) Name() string     { return "string-concat-loop"
 func (r *StringConcatInLoopRule) Category() string { return "allocation" }
 
 func (r *StringConcatInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Track strings.Builder usage
 	builders := findStringBuilders(file)
@@ -320,7 +320,7 @@ func (r *MapWithoutSizeRule) Name() string     { return "map-without-size" }
 func (r *MapWithoutSizeRule) Category() string { return "allocation" }
 
 func (r *MapWithoutSizeRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Only flag maps that are actually populated in loops
 	ast.Inspect(file, func(n ast.Node) bool {

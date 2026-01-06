@@ -18,7 +18,7 @@ func (r *ContextBackgroundInHandlerRule) Name() string     { return "context-bac
 func (r *ContextBackgroundInHandlerRule) Category() string { return "context" }
 
 func (r *ContextBackgroundInHandlerRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
@@ -82,7 +82,7 @@ func (r *MissingContextTimeoutRule) Name() string     { return "missing-context-
 func (r *MissingContextTimeoutRule) Category() string { return "context" }
 
 func (r *MissingContextTimeoutRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Track contexts with timeouts in each function
 	ast.Inspect(file, func(n ast.Node) bool {
@@ -173,7 +173,7 @@ func (r *ContextLeakRule) Name() string     { return "context-leak" }
 func (r *ContextLeakRule) Category() string { return "context" }
 
 func (r *ContextLeakRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)

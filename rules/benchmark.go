@@ -3,6 +3,7 @@ package rules
 import (
 	"go/ast"
 	"go/token"
+	"strings"
 )
 
 func init() {
@@ -132,33 +133,40 @@ func generateBenchmarkCode(funcName string, funcDecl *ast.FuncDecl) string {
 	// Generate basic benchmark scaffold
 	benchName := "Benchmark" + capitalizeFirst(funcName)
 
-	code := "func " + benchName + "(b *testing.B) {\n"
-	code += "\t// Setup: initialize test data\n"
+	var b strings.Builder
+	b.Grow(256) // Pre-allocate reasonable capacity
+
+	b.WriteString("func ")
+	b.WriteString(benchName)
+	b.WriteString("(b *testing.B) {\n")
+	b.WriteString("\t// Setup: initialize test data\n")
 
 	// Add parameter hints based on function signature
 	if funcDecl.Type.Params != nil && len(funcDecl.Type.Params.List) > 0 {
-		code += "\t// params: "
+		b.WriteString("\t// params: ")
 		for i, param := range funcDecl.Type.Params.List {
 			if i > 0 {
-				code += ", "
+				b.WriteString(", ")
 			}
 			for j, name := range param.Names {
 				if j > 0 {
-					code += ", "
+					b.WriteString(", ")
 				}
-				code += name.Name
+				b.WriteString(name.Name)
 			}
 		}
-		code += "\n"
+		b.WriteString("\n")
 	}
 
-	code += "\n\tb.ResetTimer()\n"
-	code += "\tfor i := 0; i < b.N; i++ {\n"
-	code += "\t\t" + funcName + "(...) // Add arguments\n"
-	code += "\t}\n"
-	code += "}"
+	b.WriteString("\n\tb.ResetTimer()\n")
+	b.WriteString("\tfor i := 0; i < b.N; i++ {\n")
+	b.WriteString("\t\t")
+	b.WriteString(funcName)
+	b.WriteString("(...) // Add arguments\n")
+	b.WriteString("\t}\n")
+	b.WriteString("}")
 
-	return code
+	return b.String()
 }
 
 func capitalizeFirst(s string) string {
@@ -177,12 +185,15 @@ func joinPatterns(patterns []perfPattern) string {
 		return ""
 	}
 
-	result := ""
+	var b strings.Builder
+	b.Grow(len(patterns) * 20) // Estimate ~20 chars per pattern
 	for i, p := range patterns {
 		if i > 0 {
-			result += ", "
+			b.WriteString(", ")
 		}
-		result += itoa(p.count) + " " + p.name
+		b.WriteString(itoa(p.count))
+		b.WriteString(" ")
+		b.WriteString(p.name)
 	}
-	return result
+	return b.String()
 }
