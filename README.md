@@ -183,6 +183,39 @@ for _, other := range others {
 // perf:ignore-end
 ```
 
+## Dogfooding: goperf on Itself
+
+We run `goperf` on its own codebase. Here's what happened:
+
+```
+$ goperf ./...
+╭───────────────────────────────────────────────────────────────────╮
+│ PERF-AUDIT: 147 issues found (36 medium, 111 low)                 │
+╰───────────────────────────────────────────────────────────────────╯
+```
+
+**We fixed all 34 actionable issues:**
+
+| Issue Type | Count | Fix Applied |
+|------------|-------|-------------|
+| Unpreallocated slices | 31 | `make([]T, 0, N)` with capacity hints |
+| String concat in loops | 2 | `strings.Builder` |
+| Map without size hint | 1 | `make(map[K]V, size)` |
+
+**After fixes:**
+```
+$ goperf ./...
+╭───────────────────────────────────────────────────────────────────╮
+│ PERF-AUDIT: 113 issues found (3 medium, 110 low)                  │
+╰───────────────────────────────────────────────────────────────────╯
+```
+
+The remaining 113 issues are:
+- **3 medium**: Nested loops for AST traversal (intentional, not O(n²) on data)
+- **110 low**: "Consider adding benchmarks" suggestions
+
+This demonstrates that `goperf` finds real issues - including in itself - and that fixing them is straightforward.
+
 ## Contributing
 
 Contributions welcome! Areas we'd love help with:
