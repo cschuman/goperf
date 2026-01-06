@@ -8,6 +8,8 @@ import (
 func init() {
 	RegisterRule("cache", &RepeatedRegexpCompileRule{})
 	RegisterRule("cache", &RepeatedTemplateParseRule{})
+	RegisterRule("cache", &RegexpMatchStringRule{})
+	RegisterRule("cache", &JSONSchemaValidationRule{})
 }
 
 // RepeatedRegexpCompileRule detects regexp.Compile inside functions (should be package-level)
@@ -119,6 +121,137 @@ func (r *RepeatedTemplateParseRule) Check(file *ast.File, fset *token.FileSet, s
 				}
 			}
 		}
+		return true
+	})
+
+	return issues
+}
+
+// RegexpMatchStringRule detects regexp.MatchString in loops (compiles each time)
+type RegexpMatchStringRule struct{}
+
+func (r *RegexpMatchStringRule) Name() string     { return "regexp-match-string-loop" }
+func (r *RegexpMatchStringRule) Category() string { return "cache" }
+
+func (r *RegexpMatchStringRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
+	var issues []Issue
+
+	ast.Inspect(file, func(n ast.Node) bool {
+		var loopBody *ast.BlockStmt
+		switch stmt := n.(type) {
+		case *ast.RangeStmt:
+			loopBody = stmt.Body
+		case *ast.ForStmt:
+			loopBody = stmt.Body
+		default:
+			return true
+		}
+
+		if loopBody == nil {
+			return true
+		}
+
+		ast.Inspect(loopBody, func(inner ast.Node) bool {
+			call, ok := inner.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+
+			sel, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+
+			ident, ok := sel.X.(*ast.Ident)
+			if !ok {
+				return true
+			}
+
+			// regexp.MatchString, regexp.Match compile the pattern each time
+			if ident.Name == "regexp" {
+				switch sel.Sel.Name {
+				case "MatchString", "Match", "ReplaceAllString", "ReplaceAll",
+					"FindString", "FindAllString", "FindStringSubmatch":
+					pos := fset.Position(call.Pos())
+					issues = append(issues, Issue{
+						Rule:     r.Name(),
+						Category: r.Category(),
+						Severity: SeverityHigh,
+						Line:     pos.Line,
+						Column:   pos.Column,
+						Message:  "regexp." + sel.Sel.Name + "() in loop - compiles regex on EVERY call",
+						Why:      "regexp.MatchString and similar functions compile the pattern each time. This is O(n*m) where m is pattern complexity.",
+						Fix:      "Compile once: var re = regexp.MustCompile(`pattern`); then use re.MatchString(s) in the loop",
+					})
+				}
+			}
+
+			return true
+		})
+
+		return true
+	})
+
+	return issues
+}
+
+// JSONSchemaValidationRule detects JSON schema validation in loops
+type JSONSchemaValidationRule struct{}
+
+func (r *JSONSchemaValidationRule) Name() string     { return "json-schema-in-loop" }
+func (r *JSONSchemaValidationRule) Category() string { return "cache" }
+
+func (r *JSONSchemaValidationRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
+	var issues []Issue
+
+	ast.Inspect(file, func(n ast.Node) bool {
+		var loopBody *ast.BlockStmt
+		switch stmt := n.(type) {
+		case *ast.RangeStmt:
+			loopBody = stmt.Body
+		case *ast.ForStmt:
+			loopBody = stmt.Body
+		default:
+			return true
+		}
+
+		if loopBody == nil {
+			return true
+		}
+
+		ast.Inspect(loopBody, func(inner ast.Node) bool {
+			call, ok := inner.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+
+			sel, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+
+			// Check for schema compilation/validation patterns
+			if sel.Sel.Name == "Compile" || sel.Sel.Name == "NewSchema" || sel.Sel.Name == "Validate" {
+				// Look for jsonschema, gojsonschema, etc.
+				ident, ok := sel.X.(*ast.Ident)
+				if ok && (ident.Name == "jsonschema" || ident.Name == "gojsonschema" || ident.Name == "schema") {
+					pos := fset.Position(call.Pos())
+					issues = append(issues, Issue{
+						Rule:     r.Name(),
+						Category: r.Category(),
+						Severity: SeverityMedium,
+						Line:     pos.Line,
+						Column:   pos.Column,
+						Message:  "JSON schema compilation/validation in loop - compile schema once",
+						Why:      "Compiling JSON schemas is expensive. Recompiling for each item wastes CPU.",
+						Fix:      "Compile the schema once outside the loop, then call Validate() in the loop",
+					})
+				}
+			}
+
+			return true
+		})
+
 		return true
 	})
 

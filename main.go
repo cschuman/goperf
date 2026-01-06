@@ -8,18 +8,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/unsaid-dev/goperf/fixer"
 	"github.com/unsaid-dev/goperf/reporter"
 	"github.com/unsaid-dev/goperf/rules"
 )
 
 var (
-	rulesFlag   = flag.String("rules", "all", "Comma-separated rules to run: algorithm,allocation,database,concurrency,io,cache,all")
-	formatFlag  = flag.String("format", "console", "Output format: console, json")
+	rulesFlag   = flag.String("rules", "all", "Comma-separated rules to run: algorithm,allocation,database,concurrency,io,cache,context,memory,benchmark,all")
+	formatFlag  = flag.String("format", "console", "Output format: console, json, diff")
 	failOnFlag  = flag.String("fail-on", "", "Exit with code 1 if issues at this level or higher: low, medium, high, critical")
 	contextFlag = flag.Int("context", 3, "Lines of context to show around issues")
 	ignoreFlag  = flag.String("ignore", "", "Comma-separated paths to ignore")
 	verboseFlag = flag.Bool("verbose", false, "Show verbose output")
 	versionFlag = flag.Bool("version", false, "Show version")
+	fixFlag     = flag.Bool("fix", false, "Automatically fix issues where possible")
+	dryRunFlag  = flag.Bool("dry-run", false, "Show fixes without applying them (use with --fix)")
 )
 
 var version = "0.1.0"
@@ -38,6 +41,8 @@ Examples:
   goperf --rules=algorithm ./internal/  # Only algorithm rules
   goperf --format=json ./...            # JSON output for CI
   goperf --fail-on=high ./...           # Exit 1 if high+ issues
+  goperf --fix --dry-run ./...          # Preview auto-fixes
+  goperf --fix ./...                    # Apply auto-fixes
 
 Flags:
 `)
@@ -45,17 +50,27 @@ Flags:
 		fmt.Fprintf(os.Stderr, `
 Rule Categories:
   algorithm   - O(n²) loops, repeated linear searches
-  allocation  - Unpreallocated slices, string concatenation
-  database    - N+1 queries, SQL in loops
+  allocation  - Unpreallocated slices, string concatenation, interface boxing
+  database    - N+1 queries, SQL in loops, connection pool issues
   concurrency - Lock contention, unbuffered channels
-  io          - Unbuffered I/O, sequential operations
-  cache       - Repeated computations, missing memoization
+  io          - Unbuffered I/O, HTTP body handling, response buffering
+  cache       - Repeated regex/template compilation, JSON schema in loops
+  context     - Missing timeouts, context leaks, context.Background in handlers
+  memory      - Large struct copying, pprof in hot paths, heap escapes
+  benchmark   - Functions with performance patterns that need benchmarks
 
 Severity Levels:
   critical - Will cause production issues
   high     - Significant performance impact
   medium   - Moderate impact, should fix
   low      - Minor optimization opportunity
+
+Auto-Fix Support:
+  The following rules support auto-fix:
+  - string-concat-loop    → strings.Builder suggestion
+  - unpreallocated-slice  → make() with capacity
+  - missing-body-close    → defer Body.Close()
+  - context-leak          → defer cancel()
 `)
 	}
 	flag.Parse()
@@ -105,11 +120,42 @@ Severity Levels:
 	// Run analysis
 	issues := analyzer.Analyze(files)
 
+	// Handle fix mode
+	if *fixFlag {
+		f := fixer.NewFixer(*dryRunFlag, *verboseFlag)
+		fixes := f.FixIssues(issues)
+
+		if *formatFlag == "diff" {
+			fmt.Println(fixer.GenerateDiff(fixes))
+		} else {
+			fixer.PrintFixes(fixes, *dryRunFlag)
+		}
+
+		// Still show summary
+		if len(issues) > 0 {
+			fmt.Printf("\nTotal issues found: %d\n", len(issues))
+			fixable := 0
+			for _, fix := range fixes {
+				if fix.Fixed != "" {
+					fixable++
+				}
+			}
+			fmt.Printf("Auto-fixable: %d\n", fixable)
+		}
+		return
+	}
+
 	// Report results
 	var rep reporter.Reporter
 	switch *formatFlag {
 	case "json":
 		rep = &reporter.JSONReporter{}
+	case "diff":
+		// Generate diff output even without --fix
+		f := fixer.NewFixer(true, *verboseFlag)
+		fixes := f.FixIssues(issues)
+		fmt.Println(fixer.GenerateDiff(fixes))
+		return
 	default:
 		rep = &reporter.ConsoleReporter{Context: *contextFlag}
 	}
@@ -130,7 +176,7 @@ Severity Levels:
 
 func parseRules(rulesStr string) []string {
 	if rulesStr == "all" {
-		return []string{"algorithm", "allocation", "database", "concurrency", "io", "cache"}
+		return []string{"algorithm", "allocation", "database", "concurrency", "io", "cache", "context", "memory", "benchmark"}
 	}
 	return strings.Split(rulesStr, ",")
 }
