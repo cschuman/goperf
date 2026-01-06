@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/unsaid-dev/goperf/discussions
+    about: Ask questions and discuss goperf usage
+  - name: Security Issues
+    url: https://github.com/unsaid-dev/goperf/blob/main/SECURITY.md
+    about: Report security vulnerabilities privately
