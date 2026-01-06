@@ -1,0 +1,163 @@
+# goperf
+
+**Preventive performance analysis for Go** - Catch O(n²) loops, N+1 queries, and other performance anti-patterns before they hit production.
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/unsaid-dev/goperf)](https://goreportcard.com/report/github.com/unsaid-dev/goperf)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Why goperf?
+
+Most performance tools are **reactive** - they tell you what's slow after it's in production. `goperf` is **preventive** - it catches performance anti-patterns during development, before they become problems.
+
+| Tool | Focus | Timing |
+|------|-------|--------|
+| `pprof` | Runtime profiling | After deployment |
+| `golangci-lint` | Code correctness | Before commit |
+| **`goperf`** | **Performance patterns** | **Before commit** |
+
+## Installation
+
+```bash
+go install github.com/unsaid-dev/goperf@latest
+```
+
+Or build from source:
+```bash
+git clone https://github.com/unsaid-dev/goperf.git
+cd goperf
+go build -o goperf .
+```
+
+## Quick Start
+
+```bash
+# Audit entire project
+goperf ./...
+
+# Check only critical patterns (O(n²), N+1 queries)
+goperf --rules=algorithm,database ./...
+
+# CI mode - fail on high severity issues
+goperf --fail-on=high --format=json ./...
+```
+
+## What It Detects
+
+### Algorithm (O(n²) and worse)
+- **Nested range loops** - Quadratic complexity that explodes with data size
+- **Linear search in loops** - Should use maps for O(1) lookup
+
+### Allocation (Memory pressure)
+- **Unpreallocated slices** - Repeated allocations from slice growth
+- **String concatenation in loops** - Creates O(n²) allocations
+- **Maps without size hints** - Causes rehashing as map grows
+
+### Database (N+1 queries)
+- **SQL in loops** - Each iteration hits the database separately
+- **Unbatched inserts** - Should use bulk operations
+
+### Concurrency (Contention & leaks)
+- **Unbuffered channels** - Can cause unexpected blocking
+- **Mutex in loops** - Lock contention from repeated acquire/release
+- **Goroutine leaks** - Goroutines without termination mechanism
+
+### I/O (Serialization overhead)
+- **JSON marshal in loops** - Reflection overhead multiplied
+- **http.Client creation** - Should reuse clients for connection pooling
+- **ReadAll usage** - Loads entire content into memory
+
+### Cache (Repeated computation)
+- **regexp.Compile in functions** - Should compile once at package level
+- **template.Parse in functions** - Should parse once at startup
+
+## Example Output
+
+```
+╭─────────────────────────────────────────────────────────────╮
+│ PERF-AUDIT: 4 issues found (1 critical, 2 high, 1 medium)   │
+╰─────────────────────────────────────────────────────────────╯
+
+CRITICAL │ Database Exec() called inside loop - N+1 query pattern
+         │ internal/db/repository.go:156:13
+         │
+         │   153│  for _, item := range items {
+         │   154│      // Process each item
+         │ → 155│      _, err := db.Exec(query, item.ID, item.Value)
+         │   156│      if err != nil {
+         │   157│          return err
+         │
+         │ WHY: Each iteration makes a separate database round-trip. With 100
+         │      items, that's 100 queries instead of 1. Network latency
+         │      dominates, making this extremely slow.
+         │ FIX: Use batch operations: SELECT ... WHERE id IN (...), bulk INSERT,
+         │      or collect IDs and query once outside the loop
+```
+
+## CI Integration
+
+### GitHub Actions
+
+```yaml
+name: Performance Audit
+on: [push, pull_request]
+
+jobs:
+  goperf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - run: go install github.com/unsaid-dev/goperf@latest
+      - run: goperf --fail-on=high ./...
+```
+
+### Pre-commit Hook
+
+```bash
+#!/bin/sh
+goperf --fail-on=critical ./...
+```
+
+## Configuration
+
+### Command Line Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--rules` | `all` | Rules to run: `algorithm,allocation,database,concurrency,io,cache` |
+| `--format` | `console` | Output format: `console`, `json` |
+| `--fail-on` | - | Exit code 1 if issues at this level: `low,medium,high,critical` |
+| `--context` | `3` | Lines of code context to show |
+| `--ignore` | - | Comma-separated paths to ignore |
+| `--verbose` | `false` | Show verbose output |
+
+## Severity Levels
+
+| Level | Meaning | Action |
+|-------|---------|--------|
+| **CRITICAL** | Will cause production issues | Fix immediately |
+| **HIGH** | Significant performance impact | Fix before release |
+| **MEDIUM** | Moderate impact | Should fix |
+| **LOW** | Minor optimization | Nice to have |
+
+## Contributing
+
+Contributions welcome! Areas we'd love help with:
+
+- [ ] More detection rules
+- [ ] False positive reduction
+- [ ] IDE integrations (VS Code, GoLand)
+- [ ] Benchmark integration
+- [ ] Auto-fix suggestions
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+Inspired by the philosophy that **preventing performance problems is better than fixing them**.
+
+Built with Go's excellent `go/ast` package for static analysis.
