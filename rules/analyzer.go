@@ -59,18 +59,27 @@ func (a *Analyzer) Analyze(files []string) []Issue {
 			continue
 		}
 
+		// Parse ignore comments
+		ignoreSet := NewIgnoreSet(src)
+
 		// Run all rules
 		for _, rule := range a.rules {
 			issues := rule.Check(file, fset, src)
 			for i := range issues {
 				issues[i].File = filename
+
+				// Skip ignored issues
+				if ignoreSet.ShouldIgnore(issues[i].Line, issues[i].Rule) {
+					continue
+				}
+
 				if a.config.Context > 0 {
 					pos := fset.Position(token.Pos(issues[i].Line))
 					pos.Line = issues[i].Line
 					issues[i].Context = ExtractContext(src, pos, a.config.Context)
 				}
+				allIssues = append(allIssues, issues[i])
 			}
-			allIssues = append(allIssues, issues...)
 		}
 	}
 
