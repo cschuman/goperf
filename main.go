@@ -25,6 +25,13 @@ var (
 	dryRunFlag  = flag.Bool("dry-run", false, "Show fixes without applying them (use with --fix)")
 )
 
+// Resource limits to prevent DoS
+const (
+	MaxFilesPerScan   = 10000
+	MaxFileSizeBytes  = 10 * 1024 * 1024 // 10MB
+	MaxDirectoryDepth = 50
+)
+
 var version = "0.1.0"
 
 func main() {
@@ -194,19 +201,79 @@ func parseSeverity(s string) rules.Severity {
 	}
 }
 
+// validatePath ensures the path is safe (no traversal attacks, within allowed scope)
+func validatePath(path string) error {
+	// Get current working directory
+	cwd, err := filepath.Abs(".")
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Get absolute path of target
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("failed to resolve path: %w", err)
+	}
+
+	// Clean the path to resolve any .. components
+	absPath = filepath.Clean(absPath)
+
+	// Check if path is within current working directory
+	if !strings.HasPrefix(absPath, cwd+string(filepath.Separator)) && absPath != cwd {
+		return fmt.Errorf("path %q is outside working directory (security restriction)", path)
+	}
+
+	// Check for symlinks to prevent TOCTOU attacks
+	realPath, err := filepath.EvalSymlinks(absPath)
+	if err == nil && realPath != absPath {
+		// Path contains symlinks - verify the real path is also within CWD
+		if !strings.HasPrefix(realPath, cwd+string(filepath.Separator)) && realPath != cwd {
+			return fmt.Errorf("symlink %q points outside working directory (security restriction)", path)
+		}
+	}
+
+	return nil
+}
+
 func collectGoFiles(pattern string, ignorePaths []string) ([]string, error) {
 	var files []string
+	fileCount := 0
+
+	// Validate the base pattern first
+	basePath := pattern
+	if strings.HasSuffix(pattern, "/...") {
+		basePath = strings.TrimSuffix(pattern, "/...")
+		if basePath == "" {
+			basePath = "."
+		}
+	}
+
+	if err := validatePath(basePath); err != nil {
+		return nil, err
+	}
 
 	// Handle ./... pattern
 	if strings.HasSuffix(pattern, "/...") {
 		root := strings.TrimSuffix(pattern, "/...")
-		if root == "." {
+		if root == "." || root == "" {
 			root = "."
 		}
+
+		currentDepth := 0
+		rootDepth := strings.Count(filepath.Clean(root), string(filepath.Separator))
+
 		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
+
+			// Check directory depth limit
+			pathDepth := strings.Count(filepath.Clean(path), string(filepath.Separator))
+			currentDepth = pathDepth - rootDepth
+			if currentDepth > MaxDirectoryDepth {
+				return filepath.SkipDir
+			}
+
 			if info.IsDir() {
 				// Skip vendor, testdata, etc.
 				base := filepath.Base(path)
@@ -220,8 +287,21 @@ func collectGoFiles(pattern string, ignorePaths []string) ([]string, error) {
 				}
 				return nil
 			}
+
+			// Check file count limit
+			if fileCount >= MaxFilesPerScan {
+				return fmt.Errorf("exceeded maximum file limit (%d files)", MaxFilesPerScan)
+			}
+
+			// Check file size limit
+			if info.Size() > MaxFileSizeBytes {
+				// Skip oversized files but continue
+				return nil
+			}
+
 			if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
 				files = append(files, path)
+				fileCount++
 			}
 			return nil
 		})
@@ -240,11 +320,27 @@ func collectGoFiles(pattern string, ignorePaths []string) ([]string, error) {
 			return nil, err
 		}
 		for _, entry := range entries {
+			if fileCount >= MaxFilesPerScan {
+				return nil, fmt.Errorf("exceeded maximum file limit (%d files)", MaxFilesPerScan)
+			}
+
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".go") && !strings.HasSuffix(entry.Name(), "_test.go") {
-				files = append(files, filepath.Join(pattern, entry.Name()))
+				filePath := filepath.Join(pattern, entry.Name())
+
+				// Check file size
+				if fileInfo, err := entry.Info(); err == nil && fileInfo.Size() > MaxFileSizeBytes {
+					continue // Skip oversized files
+				}
+
+				files = append(files, filePath)
+				fileCount++
 			}
 		}
 	} else if strings.HasSuffix(pattern, ".go") {
+		// Check file size
+		if info.Size() > MaxFileSizeBytes {
+			return nil, fmt.Errorf("file %q exceeds maximum size limit (%d bytes)", pattern, MaxFileSizeBytes)
+		}
 		files = append(files, pattern)
 	}
 

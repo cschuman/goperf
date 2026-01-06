@@ -229,17 +229,24 @@ func (r *ContextLeakRule) Check(file *ast.File, fset *token.FileSet, src []byte)
 		})
 
 		// Check if cancel functions are called (either directly or via defer)
+		// Only track calls to identifiers that are in our cancelFuncs map
 		calledCancels := make(map[string]bool)
 
 		ast.Inspect(funcDecl.Body, func(inner ast.Node) bool {
 			switch node := inner.(type) {
 			case *ast.CallExpr:
 				if ident, ok := node.Fun.(*ast.Ident); ok {
-					calledCancels[ident.Name] = true
+					// Only mark as called if it's a known cancel function
+					if _, isCancel := cancelFuncs[ident.Name]; isCancel {
+						calledCancels[ident.Name] = true
+					}
 				}
 			case *ast.DeferStmt:
 				if call, ok := node.Call.Fun.(*ast.Ident); ok {
-					calledCancels[call.Name] = true
+					// Only mark as called if it's a known cancel function
+					if _, isCancel := cancelFuncs[call.Name]; isCancel {
+						calledCancels[call.Name] = true
+					}
 				}
 			}
 			return true
