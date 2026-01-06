@@ -2,8 +2,11 @@
 
 **Preventive performance analysis for Go** - Catch O(n²) loops, N+1 queries, and other performance anti-patterns before they hit production.
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev)
 [![Go Report Card](https://goreportcard.com/badge/github.com/unsaid-dev/goperf)](https://goreportcard.com/report/github.com/unsaid-dev/goperf)
+[![GoDoc](https://pkg.go.dev/badge/github.com/unsaid-dev/goperf)](https://pkg.go.dev/github.com/unsaid-dev/goperf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ## Why goperf?
 
@@ -218,13 +221,21 @@ This demonstrates that `goperf` finds real issues - including in itself - and th
 
 ## Contributing
 
-Contributions welcome! Areas we'd love help with:
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Areas we'd love help with:
 
 - [ ] More detection rules
 - [ ] False positive reduction
 - [ ] IDE integrations (VS Code, GoLand)
 - [ ] Benchmark integration
 - [ ] Auto-fix suggestions
+
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+
+## Security
+
+Found a security issue? Please report it responsibly. See [SECURITY.md](SECURITY.md) for details.
 
 ## License
 
