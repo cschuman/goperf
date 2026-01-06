@@ -142,6 +142,47 @@ goperf --fail-on=critical ./...
 | **MEDIUM** | Moderate impact | Should fix |
 | **LOW** | Minor optimization | Nice to have |
 
+## Ignoring Issues
+
+Sometimes you need to suppress a warning - perhaps it's a false positive, or you've verified the code is intentional. Use `// perf:ignore` comments:
+
+### Line-level Ignore
+
+```go
+// perf:ignore
+for _, item := range items {
+    db.Exec(query, item) // This line is ignored
+}
+```
+
+Or on the same line:
+```go
+db.Exec(query, item) // perf:ignore
+```
+
+### Ignore Specific Rule
+
+```go
+// perf:ignore sql-in-loop
+for _, item := range items {
+    db.Exec(query, item) // Only sql-in-loop is ignored
+    result = append(result, item) // Still flagged for append-in-loop
+}
+```
+
+### Block Ignore
+
+```go
+// perf:ignore-start
+for _, item := range items {
+    db.Exec(query, item)
+}
+for _, other := range others {
+    db.Query(q, other)
+}
+// perf:ignore-end
+```
+
 ## Contributing
 
 Contributions welcome! Areas we'd love help with:
