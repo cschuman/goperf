@@ -19,7 +19,7 @@ func (r *JSONInLoopRule) Name() string     { return "json-in-loop" }
 func (r *JSONInLoopRule) Category() string { return "io" }
 
 func (r *JSONInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
@@ -234,7 +234,7 @@ func (r *HTTPClientCreationRule) Name() string     { return "http-client-creatio
 func (r *HTTPClientCreationRule) Category() string { return "io" }
 
 func (r *HTTPClientCreationRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Track package-level http.Client declarations (those are fine)
 	packageLevelClients := findPackageLevelHTTPClients(file)
@@ -310,7 +310,7 @@ func (r *HTTPClientCreationRule) Check(file *ast.File, fset *token.FileSet, src 
 }
 
 func findPackageLevelHTTPClients(file *ast.File) []string {
-	var clients []string
+	clients := make([]string, 0, 4)
 
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
@@ -399,7 +399,7 @@ func (r *ReadAllRule) Name() string     { return "read-all" }
 func (r *ReadAllRule) Category() string { return "io" }
 
 func (r *ReadAllRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)

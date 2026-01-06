@@ -109,8 +109,8 @@ Auto-Fix Support:
 		Verbose:     *verboseFlag,
 	})
 
-	// Collect Go files
-	var files []string
+	// Collect Go files - estimate ~100 files per pattern
+	files := make([]string, 0, len(paths)*100)
 	for _, pattern := range paths {
 		matches, err := collectGoFiles(pattern, ignorePaths)
 		if err != nil {
@@ -236,7 +236,8 @@ func validatePath(path string) error {
 }
 
 func collectGoFiles(pattern string, ignorePaths []string) ([]string, error) {
-	var files []string
+	// Preallocate with reasonable estimate
+	files := make([]string, 0, 64)
 	fileCount := 0
 
 	// Validate the base pattern first

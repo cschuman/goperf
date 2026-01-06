@@ -82,10 +82,11 @@ func validatePathForWrite(filename string) error {
 
 // FixIssues attempts to fix the given issues
 func (f *Fixer) FixIssues(issues []rules.Issue) []Fix {
-	var fixes []Fix
+	// Preallocate: assume ~1 fix per issue
+	fixes := make([]Fix, 0, len(issues))
 
-	// Group issues by file
-	byFile := make(map[string][]rules.Issue)
+	// Group issues by file with size hint
+	byFile := make(map[string][]rules.Issue, len(issues)/2+1)
 	for _, issue := range issues {
 		byFile[issue.File] = append(byFile[issue.File], issue)
 	}
@@ -99,7 +100,7 @@ func (f *Fixer) FixIssues(issues []rules.Issue) []Fix {
 }
 
 func (f *Fixer) fixFile(filename string, issues []rules.Issue) []Fix {
-	var fixes []Fix
+	fixes := make([]Fix, 0, len(issues))
 
 	// Validate path before any operations
 	if err := validatePathForWrite(filename); err != nil {

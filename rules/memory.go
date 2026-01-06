@@ -18,7 +18,7 @@ func (r *PprofInHotPathRule) Name() string     { return "pprof-in-hot-path" }
 func (r *PprofInHotPathRule) Category() string { return "memory" }
 
 func (r *PprofInHotPathRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	pprofFuncs := map[string]bool{
 		"WriteHeapProfile":    true,
@@ -133,7 +133,7 @@ func (r *LargeStructCopyRule) Name() string     { return "large-struct-copy" }
 func (r *LargeStructCopyRule) Category() string { return "memory" }
 
 func (r *LargeStructCopyRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Find struct definitions and estimate their size
 	structSizes := estimateStructSizes(file)
@@ -242,7 +242,7 @@ func (r *EscapeToHeapRule) Name() string     { return "escape-to-heap" }
 func (r *EscapeToHeapRule) Category() string { return "memory" }
 
 func (r *EscapeToHeapRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt

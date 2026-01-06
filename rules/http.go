@@ -18,7 +18,7 @@ func (r *MissingMaxBytesReaderRule) Name() string     { return "missing-max-byte
 func (r *MissingMaxBytesReaderRule) Category() string { return "io" }
 
 func (r *MissingMaxBytesReaderRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
@@ -114,7 +114,7 @@ func (r *MissingBodyCloseRule) Name() string     { return "missing-body-close" }
 func (r *MissingBodyCloseRule) Category() string { return "io" }
 
 func (r *MissingBodyCloseRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
@@ -131,7 +131,7 @@ func (r *MissingBodyCloseRule) Check(file *ast.File, fset *token.FileSet, src []
 			varName string
 			pos     token.Position
 		}
-		var responses []respInfo
+		responses := make([]respInfo, 0, 4)
 
 		ast.Inspect(funcDecl.Body, func(inner ast.Node) bool {
 			assign, ok := inner.(*ast.AssignStmt)
@@ -233,7 +233,7 @@ func (r *ResponseWriterBufferingRule) Name() string     { return "response-write
 func (r *ResponseWriterBufferingRule) Category() string { return "io" }
 
 func (r *ResponseWriterBufferingRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)

@@ -16,7 +16,12 @@ type Analyzer struct {
 
 // NewAnalyzer creates a new analyzer with the given config
 func NewAnalyzer(config AnalyzerConfig) *Analyzer {
-	a := &Analyzer{config: config}
+	// Estimate total rules: ~3 rules per category on average
+	estimatedRules := len(config.Rules) * 3
+	a := &Analyzer{
+		config: config,
+		rules:  make([]Rule, 0, estimatedRules),
+	}
 
 	// Collect rules based on config
 	for _, category := range config.Rules {
@@ -30,7 +35,8 @@ func NewAnalyzer(config AnalyzerConfig) *Analyzer {
 
 // Analyze runs all rules against the given files
 func (a *Analyzer) Analyze(files []string) []Issue {
-	var allIssues []Issue
+	// Preallocate with estimate: ~2 issues per file on average
+	allIssues := make([]Issue, 0, len(files)*2)
 
 	fset := token.NewFileSet()
 
@@ -90,7 +96,7 @@ func (a *Analyzer) Analyze(files []string) []Issue {
 
 // FindNestedRangeLoops finds nested for-range loops
 func FindNestedRangeLoops(file *ast.File, fset *token.FileSet) []ast.Node {
-	var nested []ast.Node
+	nested := make([]ast.Node, 0, 4) // Most files have few nested loops
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		outerRange, ok := n.(*ast.RangeStmt)
@@ -116,7 +122,7 @@ func FindNestedRangeLoops(file *ast.File, fset *token.FileSet) []ast.Node {
 
 // FindAppendInLoop finds append calls inside loops without preallocation
 func FindAppendInLoop(file *ast.File, fset *token.FileSet) []AppendInLoopInfo {
-	var results []AppendInLoopInfo
+	results := make([]AppendInLoopInfo, 0, 8) // Typical file has few append-in-loop issues
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		// Look for for statements (both range and regular)
@@ -174,7 +180,7 @@ type AppendInLoopInfo struct {
 
 // FindStringConcatInLoop finds string concatenation in loops
 func FindStringConcatInLoop(file *ast.File, fset *token.FileSet) []token.Position {
-	var results []token.Position
+	results := make([]token.Position, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt
@@ -215,7 +221,7 @@ func FindStringConcatInLoop(file *ast.File, fset *token.FileSet) []token.Positio
 
 // FindSQLInLoop finds database query patterns inside loops
 func FindSQLInLoop(file *ast.File, fset *token.FileSet) []SQLInLoopInfo {
-	var results []SQLInLoopInfo
+	results := make([]SQLInLoopInfo, 0, 4)
 
 	sqlMethods := map[string]bool{
 		"Query":      true,
@@ -277,7 +283,7 @@ type SQLInLoopInfo struct {
 
 // FindUnbufferedChannels finds unbuffered channel creation
 func FindUnbufferedChannels(file *ast.File, fset *token.FileSet) []token.Position {
-	var results []token.Position
+	results := make([]token.Position, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
@@ -347,7 +353,7 @@ func FindMutexHotspots(file *ast.File, fset *token.FileSet) map[string]int {
 
 // FindJSONInLoop finds JSON marshal/unmarshal calls in loops
 func FindJSONInLoop(file *ast.File, fset *token.FileSet) []JSONInLoopInfo {
-	var results []JSONInLoopInfo
+	results := make([]JSONInLoopInfo, 0, 4)
 
 	jsonFuncs := map[string]bool{
 		"Marshal":   true,

@@ -18,7 +18,7 @@ func (r *NestedRangeRule) Name() string     { return "nested-range" }
 func (r *NestedRangeRule) Category() string { return "algorithm" }
 
 func (r *NestedRangeRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)
@@ -187,7 +187,7 @@ func (r *LinearSearchInLoopRule) Name() string     { return "linear-search-in-lo
 func (r *LinearSearchInLoopRule) Category() string { return "algorithm" }
 
 func (r *LinearSearchInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		funcDecl, ok := n.(*ast.FuncDecl)

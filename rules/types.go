@@ -90,7 +90,14 @@ func ExtractContext(src []byte, pos token.Position, contextLines int) []string {
 }
 
 func splitLines(src []byte) []string {
-	var lines []string
+	// Count newlines to preallocate
+	lineCount := 1
+	for _, b := range src {
+		if b == '\n' {
+			lineCount++
+		}
+	}
+	lines := make([]string, 0, lineCount)
 	start := 0
 	for i, b := range src {
 		if b == '\n' {

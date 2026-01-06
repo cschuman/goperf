@@ -176,7 +176,9 @@ func wordWrap(text string, width int, indent string) string {
 		return text
 	}
 
-	var lines []string
+	// Estimate lines needed: text length / width
+	estimatedLines := len(text)/width + 1
+	lines := make([]string, 0, estimatedLines)
 	var currentLine strings.Builder
 
 	for _, word := range words {

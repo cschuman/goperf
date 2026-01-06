@@ -17,7 +17,7 @@ func (r *MissingConnectionPoolRule) Name() string     { return "missing-connecti
 func (r *MissingConnectionPoolRule) Category() string { return "database" }
 
 func (r *MissingConnectionPoolRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Find sql.Open calls
 	sqlOpenVars := make(map[string]token.Position)
@@ -111,7 +111,7 @@ func (r *UnlimitedConnectionPoolRule) Name() string     { return "unlimited-conn
 func (r *UnlimitedConnectionPoolRule) Category() string { return "database" }
 
 func (r *UnlimitedConnectionPoolRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 2)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)

@@ -17,7 +17,7 @@ func (r *SQLInLoopRule) Name() string     { return "sql-in-loop" }
 func (r *SQLInLoopRule) Category() string { return "database" }
 
 func (r *SQLInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Track prepared statements declared in the current scope
 	preparedStmts := findPreparedStatements(file)
@@ -255,7 +255,7 @@ func (r *UnbatchedInsertRule) Name() string     { return "unbatched-insert" }
 func (r *UnbatchedInsertRule) Category() string { return "database" }
 
 func (r *UnbatchedInsertRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt

@@ -18,7 +18,7 @@ func (r *InterfaceBoxingInLoopRule) Name() string     { return "interface-boxing
 func (r *InterfaceBoxingInLoopRule) Category() string { return "allocation" }
 
 func (r *InterfaceBoxingInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Find functions that take interface{} or any parameters
 	interfaceFuncs := findInterfaceFunctions(file)
@@ -83,7 +83,7 @@ func (r *VariadicInterfaceRule) Name() string     { return "variadic-interface" 
 func (r *VariadicInterfaceRule) Category() string { return "allocation" }
 
 func (r *VariadicInterfaceRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Find functions with variadic interface{} parameters
 	variadicFuncs := map[string]bool{
@@ -179,7 +179,7 @@ func (r *TypeAssertionInLoopRule) Name() string     { return "type-assertion-loo
 func (r *TypeAssertionInLoopRule) Category() string { return "allocation" }
 
 func (r *TypeAssertionInLoopRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt

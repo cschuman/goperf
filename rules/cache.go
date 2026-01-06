@@ -19,7 +19,7 @@ func (r *RepeatedRegexpCompileRule) Name() string     { return "repeated-regexp-
 func (r *RepeatedRegexpCompileRule) Category() string { return "cache" }
 
 func (r *RepeatedRegexpCompileRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	// Track if we're inside a function
 	var inFunc bool
@@ -75,7 +75,7 @@ func (r *RepeatedTemplateParseRule) Name() string     { return "repeated-templat
 func (r *RepeatedTemplateParseRule) Category() string { return "cache" }
 
 func (r *RepeatedTemplateParseRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	var inFunc bool
 
@@ -134,7 +134,7 @@ func (r *RegexpMatchStringRule) Name() string     { return "regexp-match-string-
 func (r *RegexpMatchStringRule) Category() string { return "cache" }
 
 func (r *RegexpMatchStringRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt
@@ -202,7 +202,7 @@ func (r *JSONSchemaValidationRule) Name() string     { return "json-schema-in-lo
 func (r *JSONSchemaValidationRule) Category() string { return "cache" }
 
 func (r *JSONSchemaValidationRule) Check(file *ast.File, fset *token.FileSet, src []byte) []Issue {
-	var issues []Issue
+	issues := make([]Issue, 0, 4)
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		var loopBody *ast.BlockStmt
