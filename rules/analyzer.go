@@ -213,16 +213,6 @@ func FindStringConcatInLoop(file *ast.File, fset *token.FileSet) []token.Positio
 	return results
 }
 
-func isStringExpr(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		return e.Kind == token.STRING
-	case *ast.BinaryExpr:
-		return isStringExpr(e.X) || isStringExpr(e.Y)
-	}
-	return false
-}
-
 // FindSQLInLoop finds database query patterns inside loops
 func FindSQLInLoop(file *ast.File, fset *token.FileSet) []SQLInLoopInfo {
 	var results []SQLInLoopInfo
