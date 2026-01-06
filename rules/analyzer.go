@@ -1,17 +1,70 @@
 package rules
 
 import (
+	"context"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
 	"strings"
+	"time"
+)
+
+const (
+	ParseTimeout = 5 * time.Second
+	MaxASTNodes  = 100000
+	MaxASTDepth  = 1000
 )
 
 // Analyzer runs rules against Go source files
 type Analyzer struct {
 	config AnalyzerConfig
 	rules  []Rule
+	Errors []string
+}
+
+type parseResult struct {
+	file     *ast.File
+	err      error
+	panicErr error
+}
+
+// ASTComplexityValidator enforces node count and depth limits during AST walks.
+type ASTComplexityValidator struct {
+	maxNodes int
+	maxDepth int
+	nodes    int
+	depth    int
+}
+
+func (v *ASTComplexityValidator) Visit(n ast.Node) ast.Visitor {
+	if n == nil {
+		if v.depth > 0 {
+			v.depth--
+		}
+		return v
+	}
+
+	v.nodes++
+	v.depth++
+
+	if v.nodes > v.maxNodes {
+		panic("ast node limit exceeded")
+	}
+	if v.depth > v.maxDepth {
+		panic("ast depth limit exceeded")
+	}
+
+	return v
+}
+
+func ValidateASTComplexity(file *ast.File) {
+	validator := &ASTComplexityValidator{
+		maxNodes: MaxASTNodes,
+		maxDepth: MaxASTDepth,
+	}
+	ast.Walk(validator, file)
 }
 
 // NewAnalyzer creates a new analyzer with the given config
@@ -34,9 +87,10 @@ func NewAnalyzer(config AnalyzerConfig) *Analyzer {
 }
 
 // Analyze runs all rules against the given files
-func (a *Analyzer) Analyze(files []string) []Issue {
+func (a *Analyzer) Analyze(files []string) ([]Issue, []string) {
 	// Preallocate with estimate: ~2 issues per file on average
 	allIssues := make([]Issue, 0, len(files)*2)
+	a.Errors = make([]string, 0, len(files))
 
 	fset := token.NewFileSet()
 
@@ -56,13 +110,44 @@ func (a *Analyzer) Analyze(files []string) []Issue {
 		// Read source
 		src, err := os.ReadFile(filename)
 		if err != nil {
+			a.recordError("read", filename, err)
 			continue
 		}
 
-		// Parse file
-		file, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
-		if err != nil {
+		// Parse file with a timeout and AST complexity enforcement
+		parseCtx, cancel := context.WithTimeout(context.Background(), ParseTimeout)
+		resultCh := make(chan parseResult, 1)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					resultCh <- parseResult{panicErr: fmt.Errorf("parser panic: %v", r)}
+				}
+			}()
+
+			file, err := parser.ParseFile(fset, filename, src, parser.ParseComments)
+			if err == nil {
+				ValidateASTComplexity(file)
+			}
+			resultCh <- parseResult{file: file, err: err}
+		}()
+
+		var file *ast.File
+		select {
+		case <-parseCtx.Done():
+			cancel()
+			a.recordError("parse", filename, parseCtx.Err())
 			continue
+		case result := <-resultCh:
+			cancel()
+			if result.panicErr != nil || result.err != nil {
+				if result.panicErr != nil {
+					a.recordError("parse", filename, result.panicErr)
+				} else {
+					a.recordError("parse", filename, result.err)
+				}
+				continue
+			}
+			file = result.file
 		}
 
 		// Parse ignore comments
@@ -89,7 +174,18 @@ func (a *Analyzer) Analyze(files []string) []Issue {
 		}
 	}
 
-	return allIssues
+	if len(a.Errors) > 0 {
+		fmt.Fprintf(os.Stderr, "Warning: %d files could not be analyzed\n", len(a.Errors))
+	}
+
+	return allIssues, a.Errors
+}
+
+func (a *Analyzer) recordError(action, filename string, err error) {
+	a.Errors = append(a.Errors, fmt.Sprintf("%s: %v", filename, err))
+	if a.config.Verbose {
+		fmt.Fprintf(os.Stderr, "Warning: failed to %s %s: %v\n", action, filename, err)
+	}
 }
 
 // Helper functions for rule implementations
@@ -224,14 +320,14 @@ func FindSQLInLoop(file *ast.File, fset *token.FileSet) []SQLInLoopInfo {
 	results := make([]SQLInLoopInfo, 0, 4)
 
 	sqlMethods := map[string]bool{
-		"Query":      true,
-		"QueryRow":   true,
-		"Exec":       true,
+		"Query":           true,
+		"QueryRow":        true,
+		"Exec":            true,
 		"QueryRowContext": true,
 		"QueryContext":    true,
 		"ExecContext":     true,
-		"Get":        true,
-		"Select":     true,
+		"Get":             true,
+		"Select":          true,
 	}
 
 	ast.Inspect(file, func(n ast.Node) bool {

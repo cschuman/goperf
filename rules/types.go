@@ -11,7 +11,7 @@
 //	    Rules:   []string{"algorithm", "database"},
 //	    Context: 3,
 //	})
-//	issues := analyzer.Analyze("./...")
+//	issues, _ := analyzer.Analyze("./...")
 package rules
 
 import (

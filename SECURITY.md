@@ -54,7 +54,7 @@ We appreciate responsible disclosure and will:
 
 goperf is designed with security in mind:
 
-1. **Read-only by default**: Only analyzes code, doesn't modify unless `--fix` is used
+1. **Read-only by default**: Only analyzes code and does not modify files (automatic fixing is not implemented)
 2. **Path validation**: Refuses to operate outside the current working directory
 3. **Symlink protection**: Validates symlinks don't escape the working directory
 4. **Resource limits**: Caps file count, file size, and directory depth
@@ -62,6 +62,6 @@ goperf is designed with security in mind:
 
 ## Best Practices for Users
 
-1. **Review before fixing**: Always use `--dry-run` before `--fix`
-2. **Trust but verify**: Review auto-fix suggestions before applying
+1. **Review suggestions**: Use `--suggest` to review proposed changes
+2. **Trust but verify**: Treat suggestions as guidance and apply manually
 3. **Keep updated**: Use the latest version for security fixes
