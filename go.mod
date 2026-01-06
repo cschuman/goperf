@@ -1,4 +1,4 @@
-module github.com/unsaid-dev/goperf
+module github.com/cschuman/goperf
 
 go 1.21
 

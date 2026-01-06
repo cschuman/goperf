@@ -3,8 +3,8 @@
 **Preventive performance analysis for Go** - Catch O(n²) loops, N+1 queries, and other performance anti-patterns before they hit production.
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![Go Report Card](https://goreportcard.com/badge/github.com/unsaid-dev/goperf)](https://goreportcard.com/report/github.com/unsaid-dev/goperf)
-[![GoDoc](https://pkg.go.dev/badge/github.com/unsaid-dev/goperf)](https://pkg.go.dev/github.com/unsaid-dev/goperf)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cschuman/goperf)](https://goreportcard.com/report/github.com/cschuman/goperf)
+[![GoDoc](https://pkg.go.dev/badge/github.com/cschuman/goperf)](https://pkg.go.dev/github.com/cschuman/goperf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -21,12 +21,12 @@ Most performance tools are **reactive** - they tell you what's slow after it's i
 ## Installation
 
 ```bash
-go install github.com/unsaid-dev/goperf@latest
+go install github.com/cschuman/goperf@latest
 ```
 
 Or build from source:
 ```bash
-git clone https://github.com/unsaid-dev/goperf.git
+git clone https://github.com/cschuman/goperf.git
 cd goperf
 go build -o goperf .
 ```
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      - run: go install github.com/unsaid-dev/goperf@latest
+      - run: go install github.com/cschuman/goperf@latest
       - run: goperf --fail-on=high ./...
 ```
 

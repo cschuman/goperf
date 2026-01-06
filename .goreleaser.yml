@@ -1,0 +1,86 @@
+# GoReleaser configuration for goperf
+# Documentation: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: goperf
+    main: .
+    binary: goperf
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+      - docs/RULES.md
+      - .goperf.yml.example
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: cschuman
+    name: goperf
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+brews:
+  - name: goperf
+    repository:
+      owner: cschuman
+      name: homebrew-tap
+    commit_author:
+      name: goreleaser
+      email: goreleaser@example.com
+    directory: Formula
+    homepage: "https://github.com/cschuman/goperf"
+    description: "Preventive performance analysis for Go"
+    license: "MIT"
+    skip_upload: true  # Enable when homebrew-tap repo exists
+    test: |
+      system "#{bin}/goperf", "--version"
+    install: |
+      bin.install "goperf"

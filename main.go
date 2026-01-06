@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/unsaid-dev/goperf/config"
-	"github.com/unsaid-dev/goperf/fixer"
-	"github.com/unsaid-dev/goperf/reporter"
-	"github.com/unsaid-dev/goperf/rules"
+	"github.com/cschuman/goperf/config"
+	"github.com/cschuman/goperf/fixer"
+	"github.com/cschuman/goperf/reporter"
+	"github.com/cschuman/goperf/rules"
 )
 
 // Resource limits to prevent DoS
@@ -21,7 +21,12 @@ const (
 	MaxDirectoryDepth = 50
 )
 
-var version = "0.1.0"
+// Build info (set by goreleaser via ldflags)
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 func main() {
 	cfg, err := config.LoadConfig()
@@ -112,7 +117,7 @@ Fix Suggestion Support:
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Printf("goperf version %s\n", version)
+		fmt.Printf("goperf %s (commit: %s, built: %s)\n", version, commit, date)
 		os.Exit(0)
 	}
 
