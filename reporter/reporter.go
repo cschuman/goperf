@@ -1,6 +1,6 @@
 package reporter
 
-import "github.com/unsaid-dev/goperf/rules"
+import "github.com/cschuman/goperf/rules"
 
 // Reporter formats and outputs issues
 type Reporter interface {

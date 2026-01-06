@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/unsaid-dev/goperf/rules"
+	"github.com/cschuman/goperf/rules"
 )
 
 // Fix represents a suggested change

@@ -3,7 +3,7 @@ package reporter
 import (
 	"encoding/json"
 
-	"github.com/unsaid-dev/goperf/rules"
+	"github.com/cschuman/goperf/rules"
 )
 
 // JSONReporter outputs machine-readable JSON

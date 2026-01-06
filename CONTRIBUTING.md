@@ -156,8 +156,8 @@ git push origin v0.2.0
 
 ## Getting Help
 
-- **Questions**: Open a [Discussion](https://github.com/unsaid-dev/goperf/discussions)
-- **Bugs**: Open an [Issue](https://github.com/unsaid-dev/goperf/issues)
+- **Questions**: Open a [Discussion](https://github.com/cschuman/goperf/discussions)
+- **Bugs**: Open an [Issue](https://github.com/cschuman/goperf/issues)
 - **Security**: See [SECURITY.md](SECURITY.md)
 
 ## License
